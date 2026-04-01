@@ -180,6 +180,10 @@ def test(data_loader, model, model_prof, metric, logger):
         torch.cuda.synchronize()
 
 
+        # Measure GPU memory during inference (after warmup)
+        torch.cuda.reset_peak_memory_stats()
+        _mem_before_inference = torch.cuda.memory_allocated()
+
         model_prof.start_profile()
         model_prof.reset_profile()
         update_model_prof(model_prof)
@@ -296,7 +300,16 @@ def test(data_loader, model, model_prof, metric, logger):
             print(logger.write('test', metric.metric_name['test']), flush=True)
         model_prof.stop_profile()
 
-        
+        # Report GPU memory usage
+        torch.cuda.synchronize()
+        _mem_peak_inference = torch.cuda.max_memory_allocated()
+        print(f"\n=== GPU Memory Report ===")
+        print(f"  Memory before inference: {_mem_before_inference / 1e9:.2f} GB")
+        print(f"  Peak memory during inference: {_mem_peak_inference / 1e9:.2f} GB")
+        print(f"  Forward overhead: {(_mem_peak_inference - _mem_before_inference) / 1e9:.2f} GB")
+        print(f"  Prune ratio: {cfg.get('prune_ratio', 'N/A')}")
+        print(f"  Batch size: {cfg['batch_size']}, Seq len: {cfg['max_seq_len']}")
+        print(f"=========================\n")
 
         torch.cuda.cudart().cudaProfilerStop()
     return inference_duration

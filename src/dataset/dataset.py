@@ -246,29 +246,25 @@ def process_calibration_dataset(dataset, tokenizer, dataset_name):
             max_length = cfg[cfg['model_name']]['max_length']
             print('max_length', max_length)
 
-            def preprocess_function(examples):   
+            def preprocess_function(examples):
                 nonlocal processed_calibrate_sample_num
                 model_inputs = {
                     'input_ids': [],
                     'attention_mask': [],
                     'labels': []
                 }
-                inputs = examples['text']
                 if processed_calibrate_sample_num >= cfg['calibration_nsamples']:
                     return model_inputs
+                # Concatenate all text and tokenize once, then slice random windows
+                all_text = "\n\n".join(examples['text'])
+                trainenc = tokenizer(all_text, return_tensors='pt', truncation=False, padding=False)
+                total_tokens = trainenc.input_ids.shape[1]
+                if total_tokens <= max_length:
+                    return model_inputs
                 for _ in range(cfg['calibration_nsamples']):
-                    while True:
-                        # i = random.randint(0, len(inputs) - 1)
-                        i = torch.randint(0, len(inputs), (1,)).item()
-                        # i = 1
-                        trainenc = tokenizer(inputs[i], return_tensors='pt')
-                        # print('trainenc.input_ids.shape[1]', trainenc.input_ids.shape[1])
-                        if trainenc.input_ids.shape[1] > max_length:
-                            break
-                    processed_calibrate_sample_num += 1
-                    if processed_calibrate_sample_num > cfg['calibration_nsamples']:
+                    if processed_calibrate_sample_num >= cfg['calibration_nsamples']:
                         return model_inputs
-                    i = torch.randint(0, trainenc.input_ids.shape[1] - max_length, (1,)).item()
+                    i = torch.randint(0, total_tokens - max_length, (1,)).item()
                     j = i + max_length
                     inp = trainenc.input_ids[0][i:j]
                     tar = inp.clone()
@@ -276,6 +272,7 @@ def process_calibration_dataset(dataset, tokenizer, dataset_name):
                     model_inputs['input_ids'].append(inp)
                     model_inputs['attention_mask'].append(trainenc.attention_mask[0][i:j])
                     model_inputs['labels'].append(tar)
+                    processed_calibrate_sample_num += 1
                 return model_inputs
 
             processed_dataset = {}

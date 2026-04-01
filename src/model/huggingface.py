@@ -163,13 +163,15 @@ def make_hf_model(model_name):
             cfg['model_name_or_path'] = f"facebook/{cfg['model_name']}"
             cfg['tokenizer_name_or_path'] = f"facebook/{cfg['model_name']}"
     elif 'llama' in model_name:
-        # https://huggingface.co/docs/transformers/main/model_doc/llama2
-        # FOLLOW the instruction to run the script: python convert_llama_weights_to_hf.py --input_dir /path/to/downloaded/llama/weights --model_size 7B --output_dir output/llama-2-7b
-        # in the above py file, change line 270 to model = LlamaForCausalLM.from_pretrained(tmp_model_path, torch_dtype=torch.float16, low_cpu_mem_usage=True), need float16 not bfloat16
-        # support ["llama-2-7b"]
-        # need tokenizer.model, tokenizer_config.json from https://huggingface.co/meta-llama/Llama-2-13b-hf/tree/main   (corresponding model type)
-        cfg['model_name_or_path'] = f'output/{model_name}'
-        cfg['tokenizer_name_or_path'] = f'output/{model_name}'
+        # Map model names to HuggingFace hub paths
+        llama_hf_map = {
+            'llama-2-7b': 'meta-llama/Llama-2-7b-hf',
+            'llama-2-13b': 'meta-llama/Llama-2-13b-hf',
+            'llama-2-70b': 'meta-llama/Llama-2-70b-hf',
+        }
+        hf_path = llama_hf_map.get(model_name, f'output/{model_name}')
+        cfg['model_name_or_path'] = hf_path
+        cfg['tokenizer_name_or_path'] = hf_path
     else:
         raise ValueError('Not valid model name')
     cfg['cache_model_path'] = os.path.join('output', 'model', model_name)
@@ -177,7 +179,7 @@ def make_hf_model(model_name):
     print("cfg['model_name_or_path']", cfg['model_name_or_path'])
    
     if 'llama' in model_name:
-        model = LlamaForCausalLM.from_pretrained(cfg['model_name_or_path'], cache_dir=cfg['cache_model_path'], torch_dtype=torch.float16, device_map='balanced')
+        model = LlamaForCausalLM.from_pretrained(cfg['model_name_or_path'], torch_dtype=torch.float16, device_map='balanced')
     elif 'opt' in model_name:
         model = OPTForCausalLM.from_pretrained(cfg['model_name_or_path'], cache_dir=cfg['cache_model_path'], torch_dtype=torch.float16, device_map='balanced')
     else:
@@ -195,7 +197,7 @@ def make_hf_model(model_name):
                 f"seq_len ({cfg['max_seq_len']}) is larger than max_position_embeddings ({model.config.max_position_embeddings})."
             )
 
-    tokenizer = AutoTokenizer.from_pretrained(cfg['tokenizer_name_or_path'], cache_dir=cfg['cache_tokenizer_path'],
+    tokenizer = AutoTokenizer.from_pretrained(cfg['tokenizer_name_or_path'],
                                                 padding_side=padding_side)
 
     print('tokenizer', tokenizer.eos_token_id, tokenizer.bos_token_id)

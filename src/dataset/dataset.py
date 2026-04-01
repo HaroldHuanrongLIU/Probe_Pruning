@@ -1,5 +1,6 @@
 import copy
 import dataset
+import itertools
 import numpy as np
 import os
 import re
@@ -78,9 +79,13 @@ def make_dataset(data_name, subset_name=None, verbose=True):
             transforms.ToTensor(),
             transforms.Normalize(*data_stats[data_name])])
     elif data_name in ['c4']:
-        # please follow the instruction here: https://huggingface.co/datasets/allenai/c4
-        dataset_['train'] = load_dataset('json', data_files={'train': 'data/c4/c4-train.00000-of-01024.json.gz'}, split='train[:10%]')
-        dataset_['test'] = load_dataset('json', data_files={'train': 'data/c4/c4-train.00000-of-01024.json.gz'}, split='train[:10%]')
+        # Use wikitext-103 train split as calibration data, pre-filtered for long texts
+        # The calibration preprocess_function has a while-True loop looking for texts > max_seq_len tokens,
+        # so we filter to only long texts (>2000 chars ~ >500 tokens) to avoid infinite search
+        _wiki103 = load_dataset('wikitext', 'wikitext-103-raw-v1', split='train')
+        _wiki103 = _wiki103.filter(lambda x: len(x['text']) > 2000)
+        dataset_['train'] = _wiki103
+        dataset_['test'] = _wiki103
     # piqa: piqa
     # siqa: siqa , 
     # arc-e: arc-easy 
@@ -278,7 +283,7 @@ def process_calibration_dataset(dataset, tokenizer, dataset_name):
                 preprocess_function,
                 batched=True,
                 batch_size=356317,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["train"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on sampled dataset",
@@ -329,7 +334,7 @@ def process_calibration_dataset(dataset, tokenizer, dataset_name):
                 preprocess_function_test,
                 batched=True,
                 batch_size=100000,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["train"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on dataset",
@@ -391,7 +396,7 @@ def process_dataset(dataset, tokenizer):
                 preprocess_function,
                 batched=True,
                 batch_size=356317,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["test"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on sampled dataset",
@@ -436,7 +441,7 @@ def process_dataset(dataset, tokenizer):
                 preprocess_function_test,
                 batched=True,
                 batch_size=100000,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["test"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on dataset",
@@ -553,7 +558,7 @@ def process_dataset(dataset, tokenizer):
                 batched=True,
                 # batch_size=50,
                 batch_size=100000,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["test"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on dataset",
@@ -652,7 +657,7 @@ def process_dataset(dataset, tokenizer):
                 batched=True,
                 # batch_size=50,
                 batch_size=100000,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["test"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on dataset",
@@ -753,7 +758,7 @@ def process_dataset(dataset, tokenizer):
                 batched=True,
                 # batch_size=50,
                 batch_size=100000,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["test"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on dataset",
@@ -865,7 +870,7 @@ def process_dataset(dataset, tokenizer):
                 batched=True,
                 # batch_size=50,
                 batch_size=100000,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["test"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on dataset",
@@ -985,7 +990,7 @@ def process_dataset(dataset, tokenizer):
                 batched=True,
                 # batch_size=50,
                 batch_size=100000,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["test"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on dataset",
@@ -1101,7 +1106,7 @@ def process_dataset(dataset, tokenizer):
                 batched=True,
                 # batch_size=50,
                 batch_size=100000,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["test"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on dataset",
@@ -1205,7 +1210,7 @@ def process_dataset(dataset, tokenizer):
                 tokenize_function,
                 batched=True,
                 batch_size=100000,
-                num_proc=1,
+                num_proc=None,
                 remove_columns=dataset["test"].column_names,
                 load_from_cache_file=False,
                 desc="Running tokenizer on dataset",

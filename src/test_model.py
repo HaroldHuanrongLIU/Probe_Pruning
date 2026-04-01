@@ -52,7 +52,11 @@ def runExperiment():
     model, tokenizer = make_model(cfg['model_name'])
     cfg['tokenizer'] = tokenizer
     # prepare_cude_events(model)
+    # Temporarily remove non-picklable tokenizer before dataset.map()
+    _tokenizer_backup = cfg.pop('tokenizer', None)
     dataset = process_dataset(dataset, tokenizer)
+    if _tokenizer_backup is not None:
+        cfg['tokenizer'] = _tokenizer_backup
     data_loader = make_data_loader(dataset, tokenizer, cfg['model_name'])
     metric = make_metric({'train': ['Loss'], 'test': ['Loss']}, tokenizer)
     if cfg['model_name'] in ['cnn', 'resnet18', 'wresnet28x2']:

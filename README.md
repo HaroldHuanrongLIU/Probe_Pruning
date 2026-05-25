@@ -1,6 +1,6 @@
 # Probe Pruning: Accelerating LLMs through Dynamic Pruning via Model-Probing
 
-[ICLR 2025] This is an implementation of *Probe Pruning: Accelerating LLMs through Dynamic Pruning via Model-Probing*
+[ICLR 2025] This is an implementation of [Probe Pruning: Accelerating LLMs through Dynamic Pruning via Model-Probing](https://arxiv.org/abs/2502.15618)
 
 ![Main Method](asset/method.png)
 
@@ -57,3 +57,7 @@
 | **LLM-Pruner w/o LoRA** | 40%           | 51.1 (4.3)                     | 34.5 (2.4)                      | N/A                         | 47.8                                 | 52.0                                  | N/A                               |
 | **PP**                  | 40%           | **16.8 (0.1)**                 | **11.3 (0.1)**                  | **26.7 (0.3)**              | **56.6**                             | **61.0**                              | **53.1**                          |
 
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
